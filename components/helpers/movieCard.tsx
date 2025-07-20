@@ -1,19 +1,27 @@
+import { useRouter } from 'expo-router';
 import { Image, Text, TouchableOpacity } from 'react-native';
 
 type MovieCardProps = {
     id: number;
     title: string;
     posterPath: string | null;
-    onPress?: () => void;
 };
 
 const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
-export default function MovieCard({ id, title, posterPath, onPress }: MovieCardProps) {
+export default function MovieCard({ id, title, posterPath }: MovieCardProps) {
+    const router = useRouter();
+
+    const handlePress = () => {
+        // Navigate to movie details page and pass id as param
+        router.push(`/movie/${id}`);
+        // Assuming you have a [id].tsx route under /app/movie/
+    };
+
     return (
         <TouchableOpacity
             key={id}
-            onPress={onPress}
+            onPress={handlePress}
             activeOpacity={0.7}
             className="mr-3"
         >
