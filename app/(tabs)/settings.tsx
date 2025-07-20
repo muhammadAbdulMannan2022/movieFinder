@@ -1,22 +1,58 @@
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import { Alert, Image, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const user = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-};
+import { useAuth } from '../context/AuthContext';
 
 const SettingsScreen = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [user, setUser] = useState<any>(null);
     const insets = useSafeAreaInsets();
+    const { logout } = useAuth();
+    const router = useRouter();
+
+    const fetchUser = async () => {
+        try {
+            const token = await SecureStore.getItemAsync("accessToken");
+            if (!token) return;
+
+            const res = await fetch("http://10.10.13.87:3000/profile", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const data = await res.json();
+            // console.log(data)
+            if (res.ok) {
+                setUser(data.user);
+            } else {
+                console.log("Profile fetch failed", data);
+                Alert.alert("Error", "Failed to fetch user info");
+            }
+        } catch (err) {
+            console.log("Error fetching profile", err);
+            Alert.alert("Error", "Something went wrong");
+        }
+    };
+
+    useEffect(() => {
+        fetchUser();
+    }, []);
 
     const handleLogout = () => {
         Alert.alert("Logout", "Are you sure you want to logout?", [
             { text: "Cancel", style: "cancel" },
-            { text: "Logout", onPress: () => console.log("Logged out") }
+            {
+                text: "Logout",
+                onPress: async () => {
+                    await logout();
+                    router.replace("/(auth)/login");
+                },
+            },
         ]);
     };
 
@@ -25,19 +61,25 @@ const SettingsScreen = () => {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-black" edges={['top', 'bottom']}>
+        <SafeAreaView className="flex-1 bg-black" edges={['bottom']}>
             <View className="flex-1 px-4 py-6 justify-between">
                 {/* Main Content */}
                 <View>
                     {/* Profile Section */}
                     <View className="flex-row items-center mb-8">
-                        <Image
-                            source={{ uri: user.avatar }}
-                            className="w-20 h-20 rounded-full border-2 border-green-500"
-                        />
+                        <View className='w-20 h-20 overflow-hidden rounded-full border-2 border-green-500'>
+                            <Image
+                                source={{ uri: `http://10.10.13.87:3000${user?.avatar}` }}
+                                className="w-20 min-h-full"
+                            />
+                        </View>
                         <View className="flex-1 ml-4">
-                            <Text className="text-white text-xl font-bold">{user.name}</Text>
-                            <Text className="text-gray-400 text-sm">{user.email}</Text>
+                            <Text className="text-white text-xl font-bold">
+                                {user?.username || "Loading..."}
+                            </Text>
+                            <Text className="text-gray-400 text-sm">
+                                {user?.email || ""}
+                            </Text>
                         </View>
 
                         <TouchableOpacity onPress={handleEditProfile} className="mr-4 p-2">
@@ -81,11 +123,10 @@ const SettingsScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Logout Button with bottom padding for safe area + tab bar */}
-                <View style={{ paddingBottom: insets.bottom + 20 /* add extra space if needed */ }}>
+                {/* Logout Button */}
+                <View style={{ paddingBottom: insets.bottom + 20 }}>
                     <TouchableOpacity
                         onPress={handleLogout}
-                        activeOpacity={60}
                         className="p-3 flex-row items-center justify-center border border-red-600 rounded-md"
                     >
                         <Text className="text-red-600 text-lg font-bold mr-2">Log Out</Text>
@@ -93,6 +134,7 @@ const SettingsScreen = () => {
                     </TouchableOpacity>
                 </View>
             </View>
+            <StatusBar style='light' />
         </SafeAreaView>
     );
 };

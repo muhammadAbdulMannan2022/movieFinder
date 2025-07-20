@@ -1,6 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Button, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+    Alert,
+    Image,
+    Pressable,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
@@ -9,9 +18,9 @@ export default function Login() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async () => {
-        console.log(email, password);
         try {
             const res = await fetch("http://10.10.13.87:3000/login", {
                 method: "POST",
@@ -20,11 +29,10 @@ export default function Login() {
             });
 
             const data = await res.json();
-            // console.log(data);
+
             if (res.ok && data.accessToken) {
                 await login(data.accessToken, data.refreshToken);
-                // Navigate after login
-                router.replace("/(tabs)");  // replace to prevent back navigation
+                router.replace("/(tabs)");
             } else {
                 Alert.alert("Login Failed", data.message || "Unknown error");
             }
@@ -34,37 +42,71 @@ export default function Login() {
         }
     };
 
-
     return (
-        <View className="p-6 flex-1 justify-center bg-black">
-            <TextInput
-                placeholder="Email"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                className="bg-gray-800 text-white px-4 py-2 rounded mb-4"
-                autoCapitalize="none"
-                keyboardType="email-address"
-            />
-            <TextInput
-                placeholder="Password"
-                placeholderTextColor="#999"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                className="bg-gray-800 text-white px-4 py-2 rounded mb-4"
-            />
-            <Button title="Login" onPress={handleLogin} />
+        <View className="flex-1 bg-black justify-center px-6">
+            {/* Image Header */}
+            <View className="items-center h-[30%] mb-8 justify-center">
+                <Image
+                    source={require("@/assets/icon.png")}
+                    className="w-60 h-32 rounded-full"
+                    resizeMode="cover"
+                />
+            </View>
 
-            {/* Sign Up Link */}
-            <TouchableOpacity
-                onPress={() => router.push("/signup")}
-                className="mt-6"
-            >
-                <Text className="text-center text-[#42f56c]">
-                    Don't have an account? Sign Up
-                </Text>
-            </TouchableOpacity>
+            <View className="h-[60%]">
+                {/* Email Input */}
+                <TextInput
+                    placeholder="Email"
+                    placeholderTextColor="#aaa"
+                    value={email}
+                    onChangeText={setEmail}
+                    className="bg-gray-800 text-white px-4 py-3 rounded-xl mb-4"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                />
+
+                {/* Password Input with Toggle */}
+                <View className="relative mb-6">
+                    <TextInput
+                        placeholder="Password"
+                        placeholderTextColor="#aaa"
+                        secureTextEntry={!showPassword}
+                        value={password}
+                        onChangeText={setPassword}
+                        className="bg-gray-800 text-white px-4 py-3 rounded-xl pr-10"
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-3"
+                    >
+                        <Ionicons
+                            name={showPassword ? "eye-off" : "eye"}
+                            size={22}
+                            color="#aaa"
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Login Button */}
+                <Pressable
+                    onPress={handleLogin}
+                    className="bg-[#42f56c] py-3 rounded-xl mb-4"
+                >
+                    <Text className="text-black text-center text-base font-semibold">
+                        Login
+                    </Text>
+                </Pressable>
+
+                {/* Sign Up Redirect */}
+                <TouchableOpacity onPress={() => router.push("/signup")}>
+                    <Text className="text-center text-gray-300">
+                        Don’t have an account?{" "}
+                        <Text className="text-[#42f56c] font-semibold">
+                            Sign Up
+                        </Text>
+                    </Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 }

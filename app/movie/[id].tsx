@@ -1,7 +1,7 @@
-// app/movie/[id].tsx
 import { TMDB_API_KEY } from '@env';
-import { Feather, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { AntDesign, Feather, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import {
@@ -23,9 +23,48 @@ export default function MovieDetailsPage() {
     const [movie, setMovie] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const navigation = useNavigation();
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isAdding, setIsAdding] = useState(false);
+
+    // add to favorit
+    const handleFavoriteToggle = async () => {
+        const authToken = await SecureStore.getItemAsync("accessToken")
+        if (!authToken) return;
+        if (!authToken) {
+            alert('Please login to use favorites');
+            return;
+        }
+        setIsAdding(true);
+        try {
+            const res = await fetch('http://10.10.13.87:3000/api/favorites', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`,
+                },
+                body: JSON.stringify({
+                    item: movie,
+                }),
+            });
+
+            if (res.ok) {
+                setIsFavorite(true); // toggle heart
+
+            } else {
+                const error = await res.json();
+                console.log(error);
+                alert('Failed to update favorite');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred');
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     useEffect(() => {
-        async function fetchDetails() {
+        const fetchDetailsAndCheckFavorite = async () => {
             setLoading(true);
             try {
                 const res = await fetch(
@@ -33,15 +72,27 @@ export default function MovieDetailsPage() {
                 );
                 const data = await res.json();
                 setMovie(data);
+
+                const token = await SecureStore.getItemAsync("accessToken");
+                if (token) {
+                    const checkRes = await fetch(`http://10.10.13.87:3000/api/favorites/check/${movieId}`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                    const checkData = await checkRes.json();
+                    setIsFavorite(checkData.isFavorite === true);
+                }
             } catch (err) {
                 console.error(err);
             } finally {
                 setLoading(false);
             }
-        }
+        };
 
-        if (movieId) fetchDetails();
+        if (movieId) fetchDetailsAndCheckFavorite();
     }, [movieId]);
+
 
     if (loading) {
         return (
@@ -77,6 +128,14 @@ export default function MovieDetailsPage() {
                     >
                         <Ionicons name="arrow-back" size={22} color="white" />
                     </Pressable>
+                    <Pressable
+                        onPress={handleFavoriteToggle}
+                        disabled={isFavorite}
+                        className={`absolute top-2 right-2 z-10 p-2 rounded-full ${isFavorite ? 'bg-white/40' : 'bg-white/20'}`}
+                    >
+                        <AntDesign name={isFavorite ? 'heart' : 'hearto'} size={22} color="#42f56c" />
+                    </Pressable>
+
 
                     {/* OVERLAY CONTENT */}
                     <View className="bg-black/60 flex-row justify-end p-4 h-full">
